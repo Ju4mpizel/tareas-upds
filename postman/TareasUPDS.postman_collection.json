@@ -1,0 +1,222 @@
+{
+  "info": {
+    "name": "Tareas UPDS - API",
+    "description": "Colección de pruebas de la API de Tareas UPDS. Ejecutar con el Collection Runner en orden. Antes de correrla se recomienda desactivar el chaos (request 0).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001" },
+    { "key": "tareaId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Desactivar chaos",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"activo\": false }" },
+        "url": "{{baseUrl}}/api/chaos"
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Chaos desactivado', () => {",
+          "  pm.expect(pm.response.json().activo).to.eql(false);",
+          "});"
+        ]}
+      }]
+    },
+    {
+      "name": "1. Listar tareas",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/tareas" },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+          "pm.test('Devuelve un arreglo', () => pm.expect(pm.response.json()).to.be.an('array'));",
+          "pm.test('Responde en menos de 500ms', () => pm.expect(pm.response.responseTime).to.be.below(500));"
+        ]}
+      }]
+    },
+    {
+      "name": "2. Crear tarea válida",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"nombre\": \"Tarea de Postman\", \"materia\": \"Calidad de Software\", \"puntaje\": 10 }" },
+        "url": "{{baseUrl}}/api/tareas"
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "const body = pm.response.json();",
+          "pm.collectionVariables.set('tareaId', body.id);",
+          "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+          "pm.test('Tiene id', () => pm.expect(body.id).to.be.a('number'));",
+          "pm.test('Nace sin completar', () => pm.expect(body.completada).to.eql(false));",
+          "pm.test('Puntaje es número', () => pm.expect(body.puntaje).to.be.a('number'));"
+        ]}
+      }]
+    },
+    {
+      "name": "3. Crear tarea con puntaje negativo (debe fallar)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"nombre\": \"Tarea mala\", \"materia\": \"Test\", \"puntaje\": -50 }" },
+        "url": "{{baseUrl}}/api/tareas"
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Status 400 por puntaje negativo', () => pm.response.to.have.status(400));"
+        ]}
+      }]
+    },
+    {
+      "name": "4. Crear tarea con puntaje mayor a 100 (debe fallar)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"nombre\": \"Tarea exagerada\", \"materia\": \"Test\", \"puntaje\": 999 }" },
+        "url": "{{baseUrl}}/api/tareas"
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Status 400 por puntaje > 100', () => pm.response.to.have.status(400));"
+        ]}
+      }]
+    },
+    {
+      "name": "4b. Crear tarea que pase de 100 en total (debe fallar)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"nombre\": \"Examen final\", \"materia\": \"Test\", \"puntaje\": 50 }" },
+        "url": "{{baseUrl}}/api/tareas"
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Status 400 porque la suma total pasaría de 100', () => pm.response.to.have.status(400));"
+        ]}
+      }]
+    },
+    {
+      "name": "5. Crear tarea sin nombre (debe fallar)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"materia\": \"Test\", \"puntaje\": 10 }" },
+        "url": "{{baseUrl}}/api/tareas"
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Status 400 por falta de nombre', () => pm.response.to.have.status(400));"
+        ]}
+      }]
+    },
+    {
+      "name": "6. Crear tarea con puntaje texto (debe fallar)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"nombre\": \"Tarea texto\", \"materia\": \"Test\", \"puntaje\": \"abc\" }" },
+        "url": "{{baseUrl}}/api/tareas"
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Status 400 por puntaje no numérico', () => pm.response.to.have.status(400));"
+        ]}
+      }]
+    },
+    {
+      "name": "7. Marcar tarea como hecha",
+      "request": { "method": "PATCH", "url": "{{baseUrl}}/api/tareas/{{tareaId}}/toggle" },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Queda completada', () => pm.expect(pm.response.json().completada).to.eql(true));"
+        ]}
+      }]
+    },
+    {
+      "name": "8. Desmarcar tarea (toggle otra vez)",
+      "request": { "method": "PATCH", "url": "{{baseUrl}}/api/tareas/{{tareaId}}/toggle" },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Vuelve a pendiente', () => pm.expect(pm.response.json().completada).to.eql(false));"
+        ]}
+      }]
+    },
+    {
+      "name": "9. Resumen: suma y promedio",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/resumen" },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "const r = pm.response.json();",
+          "pm.sendRequest(pm.collectionVariables.get('baseUrl') + '/api/tareas', (err, res) => {",
+          "  const tareas = res.json();",
+          "  const hechas = tareas.filter(t => t.completada);",
+          "  const sumaEsperada = hechas.reduce((a, t) => a + Number(t.puntaje), 0);",
+          "  const promedioEsperado = Math.round((sumaEsperada / tareas.length) * 100) / 100;",
+          "  pm.test('sumaPuntaje nunca es negativa', () => pm.expect(r.sumaPuntaje).to.be.at.least(0));",
+          "  pm.test('sumaPuntaje = suma de tareas completadas (' + sumaEsperada + ')', () => pm.expect(r.sumaPuntaje).to.eql(sumaEsperada));",
+          "  pm.test('promedio = suma / total de tareas (' + promedioEsperado + ')', () => pm.expect(r.promedio).to.eql(promedioEsperado));",
+          "  pm.test('puntajeTotal es número', () => pm.expect(r.puntajeTotal).to.be.a('number'));",
+          "});"
+        ]}
+      }]
+    },
+    {
+      "name": "10. Eliminar tarea creada",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/api/tareas/{{tareaId}}" },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));"
+        ]}
+      }]
+    },
+    {
+      "name": "11. Eliminar tarea inexistente (debe dar 404)",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/api/tareas/99999" },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Status 404', () => pm.response.to.have.status(404));"
+        ]}
+      }]
+    },
+    {
+      "name": "12. Obtener tarea inexistente",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/tareas/99999" },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Status 404', () => pm.response.to.have.status(404));"
+        ]}
+      }]
+    },
+    {
+      "name": "13. Reactivar chaos (latencia alta)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{ \"activo\": true, \"latenciaMin\": 200, \"latenciaMax\": 2500, \"probabilidadError\": 0.1 }" },
+        "url": "{{baseUrl}}/api/chaos"
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('Chaos activo', () => pm.expect(pm.response.json().activo).to.eql(true));"
+        ]}
+      }]
+    }
+  ]
+}
