@@ -34,7 +34,7 @@ Otros scripts:
 | Comando | Qué hace |
 |---|---|
 | `npm run build` | Compila el frontend a `dist/` |
-| `npm start` | Levanta la API + el build compilado en http://localhost:4173 (usar este para Lighthouse) |
+| `npm start` | Levanta la API + el build compilado en http://localhost:4173 |
 | `npm run server` | Solo la API |
 | `npm run chaos` | Ejecuta la prueba de chaos contra la API |
 
@@ -43,14 +43,14 @@ Otros scripts:
 ## Funcionalidad esperada (requisitos)
 
 1. **Agregar tarea** con nombre, materia y puntaje (número entre 0 y 100). Todos los campos son obligatorios.
-   - La **suma de los puntajes de todas las tareas no puede pasar de 100** (la nota máxima de la materia). Si al agregar una tarea el total superaría 100, se debe rechazar.
+   - La **suma de los puntajes de todas las tareas no puede pasar de 100** (la nota máxima de la materia).
 2. **Listar tareas** debajo del formulario.
 3. **Marcar / desmarcar** una tarea como hecha con un check.
 4. **Eliminar** una tarea.
 5. **Resumen**:
    - **Puntaje obtenido** = suma de los puntajes de las tareas **completadas**.
    - **Puntaje total** = suma de los puntajes de **todas** las tareas.
-   - **Promedio** = puntaje obtenido / cantidad total de tareas (las no hechas cuentan como 0). Debe subir al marcar una tarea y bajar al desmarcarla.
+   - **Promedio** = puntaje obtenido / cantidad total de tareas (las no hechas cuentan como 0).
    - **% de avance** = completadas / total × 100.
 
 ## API
@@ -59,9 +59,9 @@ Otros scripts:
 |---|---|---|
 | GET | `/api/tareas` | Lista de tareas |
 | GET | `/api/tareas/:id` | Una tarea |
-| POST | `/api/tareas` | Crea una tarea `{ nombre, materia, puntaje }` → debe responder **201** |
+| POST | `/api/tareas` | Crea una tarea `{ nombre, materia, puntaje }` |
 | PATCH | `/api/tareas/:id/toggle` | Marca / desmarca la tarea |
-| DELETE | `/api/tareas/:id` | Elimina la tarea (404 si no existe) |
+| DELETE | `/api/tareas/:id` | Elimina la tarea |
 | GET | `/api/resumen` | Suma, promedio y avance |
 | GET | `/api/chaos` | Ver configuración de chaos |
 | POST | `/api/chaos` | Cambiar configuración de chaos |
@@ -74,21 +74,20 @@ Otros scripts:
 ### 1. Prueba básica — Lighthouse
 
 1. `npm run build` y luego `npm start`.
-2. Abrir http://localhost:4173 en Chrome **en una ventana de incógnito**.
-3. F12 → pestaña **Lighthouse** → marcar Performance, Accessibility, Best Practices y SEO → **Analyze page load**.
-4. Revisar las puntuaciones y las sugerencias ("Diagnostics", "Avoid non-composited animations", contraste, etiquetas, etc.).
-5. También se puede usar la pestaña **Performance** de DevTools para grabar unos segundos y ver qué bloquea el hilo principal.
+2. Abrir http://localhost:4173 en Chrome en una ventana de incógnito.
+3. F12 → pestaña **Lighthouse** → marcar todas las categorías → **Analyze page load**.
+4. Analizar las puntuaciones y los resultados del reporte.
 
 ### 2. Prueba intermedia — Postman
 
 1. `npm run server`.
 2. En Postman: **Import** → `postman/TareasUPDS.postman_collection.json`.
-3. Abrir la colección → **Run collection** (Collection Runner) y ejecutar en orden.
-4. Los tests describen el comportamiento **esperado**. Cada test que falle es un posible bug a documentar.
+3. Abrir la colección → **Run collection** y ejecutar en orden.
+4. Analizar los resultados de los tests.
 
 ### 3. Prueba avanzada — Chaos testing
 
-La API trae un middleware de chaos (`server/chaos.js`) que inyecta **latencia aleatoria** y **errores 500 aleatorios**. Viene **activado por defecto**.
+La API incluye un módulo de chaos que puede inyectar **latencia** y **errores 500** aleatorios.
 
 - Ver configuración: `GET /api/chaos`
 - Cambiarla (desde Postman o curl):
@@ -98,7 +97,7 @@ POST /api/chaos
 { "activo": true, "latenciaMin": 500, "latenciaMax": 5000, "probabilidadError": 0.3 }
 ```
 
-- Prueba automática de carga con chaos:
+- Prueba automática:
 
 ```bash
 npm run chaos
@@ -106,8 +105,7 @@ npm run chaos
 $env:N=100; $env:LAT_MAX=5000; $env:ERR=0.3; npm run chaos
 ```
 
-- **Prueba manual en el frontend:** con `npm run dev` corriendo, sube la latencia y la probabilidad de error y usa la app (agregar, marcar, recargar). Observa cómo se comporta la interfaz cuando la API tarda o falla. ¿Muestra un estado de carga? ¿Un mensaje de error? ¿Se cae?
-- En DevTools → Network también se puede simular una red lenta (*Slow 3G*).
+- Prueba manual: con `npm run dev` corriendo, cambiar la configuración de chaos y usar la aplicación.
 
 ---
 
@@ -115,9 +113,9 @@ $env:N=100; $env:LAT_MAX=5000; $env:ERR=0.3; npm run chaos
 
 - Reporte de Lighthouse **antes** y **después** de corregir.
 - Resultados del Collection Runner de Postman **antes** y **después**.
-- Resultado de `npm run chaos` y capturas del frontend bajo chaos **antes** y **después**.
-- Lista de bugs encontrados (archivo, línea, causa, solución).
-- Refactorización del código (componentes, servicios, eliminar duplicación).
+- Resultados de chaos testing **antes** y **después**.
+- Lista de errores encontrados (archivo, causa, solución).
+- Refactorización del código.
 
 ## Estructura
 
@@ -125,13 +123,13 @@ $env:N=100; $env:LAT_MAX=5000; $env:ERR=0.3; npm run chaos
 ├── index.html
 ├── src/
 │   ├── main.jsx
-│   ├── App.jsx        ← todo el frontend en un solo componente
+│   ├── App.jsx
 │   └── App.css
 ├── server/
-│   ├── index.js       ← rutas de la API
-│   ├── calculos.js    ← suma y promedio
+│   ├── index.js
+│   ├── calculos.js
 │   ├── validaciones.js
-│   └── chaos.js       ← inyección de latencia y errores
+│   └── chaos.js
 ├── postman/
 │   └── TareasUPDS.postman_collection.json
 └── scripts/
